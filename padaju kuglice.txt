@@ -1,0 +1,51 @@
+import pygame
+import random
+import time
+
+pygame.init()
+
+LIGHTBLUE = (0, 178, 238)
+DARKBLUE = (0, 0, 180)
+display_width = 500
+display_height = 600
+clock = pygame.time.Clock()
+FPS = 140
+
+gameDisplay = pygame.display.set_mode((display_width, display_height))
+pygame.display.set_caption("Balloons")
+
+clock = pygame.time.Clock()
+gravity = 1 #brzina
+balloons = []
+balloons_size = 10
+balloon_num = 5
+
+gameExit = False
+
+for i in range(balloon_num):
+    x = random.randrange(balloons_size, display_width-balloons_size)
+    y = random.randrange(-50, 0)
+    balloons.append([x,y])
+
+while not gameExit:
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            gameExit = True
+            quit()
+
+    gameDisplay.fill(LIGHTBLUE)
+
+    for i in balloons:
+        i[1] += gravity #balun se spusta po y osi
+        pygame.draw.circle(gameDisplay, DARKBLUE, i, balloons_size)
+
+
+        if i[1] > display_height:
+            i[1] = random.randrange(-50, -5)
+            i[0] = random.randrange(balloons_size, display_width-balloons_size)
+
+    pygame.display.update()
+    clock.tick(FPS)
+pygame.quit()
+quit()
