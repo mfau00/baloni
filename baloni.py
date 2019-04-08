@@ -1,113 +1,121 @@
 import pygame as pg
 import random
 
-pg.init() #prije nego počnemo rad s Pygame paketom, potrebno je inicijalizirati njegove module (tu spada display, draw itd)
+pg.init()
 
-LIGHTBLUE = pg.Color('lightskyblue2')
+#boje
+#LIGHTBLUE = pg.Color('lightskyblue2')
 DARKBLUE = (11, 8, 69)
+DARKGREEN = (0, 119, 0)
 RED = (255, 0, 0)
-BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
+BLACK = (155, 230, 123)
 
-gameDisplay = pg.display.set_mode((400, 600))
-width, height = gameDisplay.get_size()
-pg.display.set_caption("Balloons")
+#varijable
+DISPLAY_WIDTH = 400
+DISPLAY_HEIGHT = 600
 
-#pg.mouse.set_visible(False) ovako se onemogući da se miš vidi
+gameDisplay = pg.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+# width, height = gameDisplay.get_size()
+
 clock = pg.time.Clock()
 FPS = 30
-
-class Player(pg.sprite.Sprite):
-    player_position = (200, 550) #pocetna pozicija
-
-    def __init__(self, image):
-        super().__init__() #potrebna da se nasljede atributi nadklase
-        self.size = (30, 25)
-        self.mx = 5
-        self.bounds = pg.Rect(10, 500, 380, 25)
-        self.image = pg.transform.scale(image, self.size)     #  namistimo da slika playera odgovara dimenzijama
-        self.rect = self.image.get_rect(center=self.player_position)
-
-    def update(self, keys, *args):
-        if keys[pg.K_LEFT]:
-            self.rect.move_ip(-self.mx, 0)
-        elif keys[pg.K_RIGHT]:
-            self.rect.move_ip(self.mx, 0)
-        self.rect.clamp_ip(self.bounds)
+all_sprites = pg.sprite.Group()
+player_group = pg.sprite.GroupSingle()
 
 
 class Balloons(pg.sprite.Sprite):
-    first_ball_position = (100, 50)
-    def __init__(self, image):
-        super().__init__()
-        self.size = (30, 30)
-        self.image = pg.transform.scale(image, self.size)
-        self.rect = self.image.get_rect(center = self.first_ball_position)
 
-    def update(self, *args):
+    def __init__(self, color):
+        pg.sprite.Sprite.__init__(self)
+        self.color = color
+        self.image = pg.Surface((30, 30))
+        self.image.fill(random.choice(self.color))
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(0, DISPLAY_WIDTH - 50)
+        self.rect.y = random.randrange(-400, 0)
+
+    def update(self):
+        #balon pada
         self.rect.y += 5
 
+        # Kad dode do dna, generira se novi balon
+        if self.rect.bottom > DISPLAY_HEIGHT:
+            self.generate_balloons()
 
-class Game:
+        cursor = pg.mouse.get_pos() # Uzimamo poziciju miša
+        print(cursor)
+        click = pg.mouse.get_pressed() # Jesmo li kliknuli mišom ili ne
+        if self.rect.x + 50 > cursor[0] > self.rect.x and self.rect.y + 50 > cursor[1] > self.rect.y:
+            print('prelazis')
+            if click[0] == 1: # Ako kliknemo, balon nestane i generira se novi
+                self.generate_balloons()
+
+    # Funkcija koja generira nove balone
+    def generate_balloons(self):
+        self.rect.x = random.randrange(10, DISPLAY_WIDTH - 50)
+        self.rect.y = random.randrange(-500, 0)
+        self.image.fill(random.choice(self.color))
+
+
+class Player(pg.sprite.Sprite):
+    player_position = (DISPLAY_WIDTH/2, DISPLAY_HEIGHT-50)
     def __init__(self):
-        self.images = {}
-        self.load_images()
-        self.player = None
-        self.balloon = None
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.Surface((60, 30))
+        self.image.fill(BLACK)
+        self.rect = self.image.get_rect(center=self.player_position)
+        self.move_x = 15
 
-        self.game_started = True
-
-        self.all_sprites = pg.sprite.Group() #spremamo sve spritove
-        self.player_single = pg.sprite.GroupSingle() #spremamo jedan spriter, a to je player
-        self.balloons_group = pg.sprite.Group()
-
-    def create_sprites(self):
-        self.create_player()
-        self.create_balloons()
-
-
-    def load_images(self):
-        image_names = ["player2"]
-        for img in image_names:
-            self.images[img] = pg.image.load(f"{img}.jpg").convert()
-            self.images[img].set_colorkey(pg.Color("Black"))
-
-        self.images["background"] = pg.image.load("back.png").convert()
-        self.images["balloon_red"] = pg.image.load("balloon_red.png").convert()
-
-    def process_events(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                return True
-
-    def create_player(self):
-        self.player = Player(self.images["player2"])
-        self.player_single.add(self.player)
-        self.all_sprites.add(self.player)
-
-    def create_balloons(self):
-        self.balloon = Balloons(self.images["balloon_red"])
-        self.balloons_group.add(self.balloon)
-        self.all_sprites.add(self.balloon)
-
-    def display_frame(self, gameDisplay):
-
-        gameDisplay.fill(DARKBLUE)
+    def update(self, *args):
         keys = pg.key.get_pressed()
-        self.create_sprites()
-        self.all_sprites.update(keys)
-        self.all_sprites.draw(gameDisplay)
+        self.move_player(keys)
 
-        pg.display.flip()
+    def move_player(self,keys):
+        if keys[pg.K_LEFT]:
+            self.rect.move_ip(-self.move_x, 0)
+        elif keys[pg.K_RIGHT]:
+            self.rect.move_ip(self.move_x, 0)
 
 
-gameExit = False
+def game_loop():
 
-game = Game()
-while not gameExit:
-    
-    gameExit = game.process_events()
-    game.display_frame(gameDisplay) #prikaz na ekranu
-    clock.tick(FPS)
+    gameExit = False
+    colors = [RED, BLUE, GREEN, YELLOW]
+    ball_num = 4
 
-pg.quit()
+    player = Player()
+    player_group.add(player)
+    all_sprites.add(player)
 
+    # Kreiramo balone, kao instance klase
+    for i in range(0, ball_num):
+        balloon = Balloons(colors)
+        all_sprites.add(balloon)
+
+
+    # Dok traje igra
+    while not gameExit:
+        # Upravljanje događajima
+        for event in pg.event.get():
+            if event.type == pg.QUIT or event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+                gameExit = True
+
+        # Update
+        all_sprites.update()
+
+        # Draw
+        gameDisplay.fill(DARKBLUE)
+        all_sprites.draw(gameDisplay)
+        pg.draw.line(gameDisplay, DARKGREEN, (0, DISPLAY_HEIGHT), (400, DISPLAY_HEIGHT), 75)
+        #player_group.draw(gameDisplay)
+
+
+        pg.display.update()
+        clock.tick(FPS)
+
+    pg.quit()
+
+game_loop()
